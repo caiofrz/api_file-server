@@ -1,0 +1,1 @@
+-novid -high -console +fps_max 0 -nod3d9ex1 -nojoy -forcenovsync +r_dynamic 0
