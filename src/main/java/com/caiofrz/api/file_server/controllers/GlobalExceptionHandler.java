@@ -2,6 +2,7 @@ package com.caiofrz.api.file_server.controllers;
 
 import com.caiofrz.api.file_server.exceptions.ErrorResponse;
 import com.caiofrz.api.file_server.exceptions.FileIOException;
+import com.caiofrz.api.file_server.exceptions.UnsupportedFileTypeException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,14 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(FileIOException.class)
   public ResponseEntity<ErrorResponse> handleIOException(FileIOException ex,
+                                                         HttpServletRequest request) {
+    log.warn(ex.getMessage());
+    return response(LocalDateTime.now(), HttpStatus.BAD_REQUEST,
+            ex.getMessage(), HttpStatus.BAD_REQUEST.getReasonPhrase(), request);
+  }
+
+  @ExceptionHandler(UnsupportedFileTypeException.class)
+  public ResponseEntity<ErrorResponse> handleIOException(UnsupportedFileTypeException ex,
                                                          HttpServletRequest request) {
     log.warn(ex.getMessage());
     return response(LocalDateTime.now(), HttpStatus.BAD_REQUEST,
