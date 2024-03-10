@@ -1,6 +1,7 @@
 package com.caiofrz.api.file_server.controllers;
 
 import com.caiofrz.api.file_server.config.FileStorageProperties;
+import com.caiofrz.api.file_server.dtos.FileListResponseDTO;
 import com.caiofrz.api.file_server.dtos.FileUploadResponseDTO;
 import com.caiofrz.api.file_server.exceptions.FileIOException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,14 +83,16 @@ public class FileStorageController {
   }
 
   @GetMapping("/list")
-  public ResponseEntity<List<String>> listFiles() {
+  public ResponseEntity<FileListResponseDTO> listFiles() {
     try {
       List<String> files = Files.list(fileStoragePath).
               map(Path::getFileName).
               map(Path::toString).
               toList();
 
-      return ResponseEntity.ok(files);
+      return ResponseEntity.ok(new FileListResponseDTO(StringUtils.cleanPath(String.valueOf(fileStoragePath)),
+              files.size(),
+              files));
     } catch (IOException ex) {
       throw new FileSystemNotFoundException("Não foi possível recuperar os arquivos!");
     }
