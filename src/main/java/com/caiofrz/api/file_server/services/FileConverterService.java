@@ -1,12 +1,18 @@
 package com.caiofrz.api.file_server.services;
 
 import com.caiofrz.api.file_server.config.FileStorageProperties;
+import com.caiofrz.api.file_server.exceptions.FileIOException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -52,9 +58,50 @@ public class FileConverterService {
       return ServletUriComponentsBuilder.fromCurrentContextPath()
               .path("/api/files/download/").path(fileName)
               .toUriString();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    } catch (IOException ex) {
+      log.warn("Conversão falhou: " + ex.getMessage());
+      throw new FileIOException("Não foi possivel converter esse arquivo para pdf!");
     }
+  }
 
+  public String convertDocxToPdf(InputStream inputStream, String fileName) throws IOException {
+    String text = this.extractTextFromDocx(inputStream);
+    try (XWPFDocument document = new XWPFDocument(inputStream);
+         PDDocument pdf = new PDDocument()) {
+
+      PDPage page = new PDPage();
+      pdf.addPage(page);
+
+      try (PDPageContentStream contentStream = new PDPageContentStream(pdf, page)) {
+        for (XWPFParagraph paragraph : document.getParagraphs()) {
+          XWPFRun run = paragraph.getRuns().get(0); // Assume que cada parágrafo possui apenas um run
+          contentStream.beginText();
+          contentStream.newLineAtOffset(100, 700); // Posição inicial do texto
+          contentStream.setFont(PDType0Font.load(pdf, inputStream), 12);
+          contentStream.showText(run.getText(0));
+          contentStream.newLine();
+          contentStream.endText();
+        }
+      }
+
+      fileName += ".pdf";
+      pdf.save(fileStoragePath + "/" + fileName);
+      log.info("PDF gerado com sucesso: " + fileName);
+      pdf.close();
+
+      return ServletUriComponentsBuilder.fromCurrentContextPath()
+              .path("/api/files/download/").path(fileName)
+              .toUriString();
+    } catch (IOException ex) {
+      throw new FileIOException("Não foi possivel converter esse arquivo para pdf!");
+    }
+  }
+
+  private String extractTextFromDocx(InputStream inputStream) throws IOException {
+    try (XWPFDocument document = new XWPFDocument(inputStream);
+         XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+      return extractor.getText();
+    }
   }
 }
+

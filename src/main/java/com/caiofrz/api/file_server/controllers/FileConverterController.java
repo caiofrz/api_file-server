@@ -4,7 +4,6 @@ import com.caiofrz.api.file_server.dtos.FileUploadResponseDTO;
 import com.caiofrz.api.file_server.exceptions.FileIOException;
 import com.caiofrz.api.file_server.exceptions.UnsupportedFileTypeException;
 import com.caiofrz.api.file_server.services.FileConverterService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,13 +27,13 @@ public class FileConverterController {
   private final FileConverterService converterService;
 
   @PostMapping("/convert-to-pdf")
-  public ResponseEntity<FileUploadResponseDTO> convertToPDF(@RequestParam("file") MultipartFile file,
-                                                            HttpServletRequest request) {
+  public ResponseEntity<FileUploadResponseDTO> convertToPDF(@RequestParam("file") MultipartFile file) {
     String[] fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename())).split("\\.");
     String extension = fileName[1];
     String generatedPdfUri;
     try {
       generatedPdfUri = switch (extension) {
+        case "docx", "doc" -> this.converterService.convertDocxToPdf(file.getInputStream(), fileName[0]);
         case "jpg", "png", "jpeg" -> this.converterService.convertImageToPdf(file.getInputStream(), fileName[0]);
         default -> throw new UnsupportedFileTypeException("Formato de arquivo não suportado: " + extension);
       };
